@@ -4,17 +4,27 @@ nmi-mysql
 A very simple and intuative mysql client wrapper for pymysql.
 
 ## Installation
-----------------------
+
 
 - Run the command to install: `pip install nmi_mysql`
 - Make sure you install `pymysql`. You can check out the instructions [here](http://www.pymysql.org/)
 
 ## Usage
-----------------------
+Minimal and straightforward when doing queries
+- Imports the nmi-mysql client library
+    `from nmi_mysql import nmi_mysql`
+- Initialization
+    `con = nmi_mysql.DB(conf, True)`
+    Accepts two parameters, first being the config object and the second specifying if autoconnect to db is enabled. If set to false, call `con.connect()` 
+- Query execution
+    `data = con.query(query, params)`
+    Accepts two parameters. The first is the query and the second is the list of parameters to be used. See example below
+- Closing connection
+    `con.close()`
 
-*SELECT operations*
+
+##### SELECT operations
 ```python
-
 from nmi_mysql import nmi_mysql
 
 connection = nmi_mysql.DB(conf, True)
@@ -26,4 +36,16 @@ connection.close()
 print(data)
 print(data2)
 
+```
+
+##### INSERT operations
+```python
+from nmi_mysql import nmi_mysql
+
+connection = nmi_mysql.DB(conf, True)
+
+# Throws an error upon failure
+result = connection.query('INSERT INTO users VALUES(%s)', [user_object])
+
+connection.close()
 ```
