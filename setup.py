@@ -6,7 +6,7 @@ from distutils.core import setup
 setup(
     name='nmi_mysql',
     packages=['nmi_mysql'],
-    version='0.4',
+    version='0.53',
     description='A simple mysql client wrapper for pymysql',
     author='Ninz',
     author_email='ninz.xp@gmail.com',
