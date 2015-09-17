@@ -6,11 +6,11 @@ from distutils.core import setup
 setup(
     name='nmi_mysql',
     packages=['nmi_mysql'],
-    version='0.53',
+    version='0.54',
     description='A simple mysql client wrapper for pymysql',
-    author='Ninz',
+    author='Ninz, Jasper, Jv, Sherwin',
     author_email='ninz.xp@gmail.com',
-    url='https://github.com/pprmint/nmi_mysql/tarball/0.4',
+    url='https://github.com/pprmint/nmi_mysql',
     keywords=['mysql', 'client', 'wrapper', 'library', 'pymysql'],
     classifiers=[],
 )
