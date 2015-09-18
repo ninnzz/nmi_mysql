@@ -106,34 +106,14 @@ class DB():
 
         return result
 
-    @classmethod
-    def to_string(cls, temp):
+    def to_string(self, temp):
         if isinstance(temp, (list, tuple)):
             tmp = ''
             for item in temp:
                 tmp += ','
-                if isinstance(item, str):
-                    tmp += '\'' + item.replace('\'', '\\\'') + '\''
-
-                elif isinstance(item, datetime):
-                    tmp += '\'' + str(item) + '\''
-
-                elif item is None:
-                    tmp += 'NULL'
-
-                else:
-                    tmp += str(item)
+                tmp += self.handle.escape(item)
 
             return tmp[1:]
 
-        elif isinstance(temp, str):
-            return '\'' + temp.replace('\'', '\\\'') + '\''
-
-        elif isinstance(temp, datetime):
-            return '\'' + str(temp) + '\''
-
-        elif temp is None:
-            return 'NULL'
-
         else:
-            return str(temp)
+            return self.handle.escape(temp)
