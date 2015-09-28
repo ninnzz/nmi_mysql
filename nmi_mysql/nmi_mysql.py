@@ -111,9 +111,14 @@ class DB():
             tmp = ''
             for item in temp:
                 tmp += ','
+                if isinstance(item, str):
+                    item = item.replace('%', '%%')
                 tmp += self.handle.escape(item)
 
             return tmp[1:]
+
+        elif isinstance(temp, str):
+            return self.handle.escape(temp.replace('%', '%%'))
 
         else:
             return self.handle.escape(temp)
