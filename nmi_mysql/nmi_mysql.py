@@ -106,6 +106,16 @@ class DB():
 
         return result
 
+    def execute_many(self, _query, _params):
+        try:
+            with self.handle.cursor() as cursor:
+                cursor.executemany(_query, _params)
+        except Exception as err:
+            self.logger.warn(err)
+            return None
+
+        self.handle.commit()
+
     def to_string(self, temp):
         if isinstance(temp, (list, tuple)):
             tmp = ''
