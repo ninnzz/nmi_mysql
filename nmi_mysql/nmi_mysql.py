@@ -52,11 +52,11 @@ class DB():
                 self.handle.close()
                 self.connected = False
                 self.handle = None
-                self.logger.warn('Disconnecting to db, closing connection')
+                print('Disconnecting to db, closing connection')
 
         except Exception as err:
-            self.logger.warn('Failed to close connection')
-            self.logger.warn(err)
+            print('Failed to close connection')
+            print(err)
 
         return None
 
