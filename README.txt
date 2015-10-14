@@ -13,6 +13,14 @@ Ideal for performing simple and raw operations in mysql.
     * pymysql (http://www.pymysql.org/)
 
 **Change Log**
+    * v.0.62
+        * returns affected rows when executing insert and update
+        * defaults the return type for select to lists
+    * v.0.61
+        * fixed logging issues
+    * v.0.58
+        * added execute many
+        * verified test for logger
     * v.0.57
         * fixed bug on type checking
     * v.0.56

@@ -12,6 +12,7 @@ from datetime import datetime
 class DB():
 
     def __init__(self, conf, autoconnect=False):
+        self.logger = logging.getLogger('database')
         self.host = conf['host']
         self.user = conf['user']
         self.password = conf['password']
@@ -19,7 +20,6 @@ class DB():
         self.port = int(conf['port'])
         self.handle = None
         self.connected = False
-        self.logger = logging.getLogger('database')
 
         if autoconnect:
             self.connect()
@@ -52,11 +52,11 @@ class DB():
                 self.handle.close()
                 self.connected = False
                 self.handle = None
-                print('Disconnecting to db, closing connection')
+                self.logger.warn('Disconnecting to db, closing connection')
 
         except Exception as err:
-            print('Failed to close connection')
-            print(err)
+            self.logger.warn('Failed to close connection')
+            self.logger.warn(err)
 
         return None
 
@@ -97,7 +97,12 @@ class DB():
         try:
             with self.handle.cursor() as cursor:
                 cursor.execute(query, ())
-                result = cursor.fetchall()
+                
+                if 'insert' in query.lower() or 'update' in query.lower():
+                    result = { 'affected_rows': cursor.rowcount }
+                else:
+                    result = list(cursor.fetchall())
+
         except Exception as err:
             self.logger.warn(err)
             return None
