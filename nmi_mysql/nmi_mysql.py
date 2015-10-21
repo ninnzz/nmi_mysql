@@ -6,7 +6,8 @@
 import re
 import logging
 import pymysql.cursors
-from datetime import datetime
+
+from multiprocessing import Queue
 
 
 class DB():
@@ -65,10 +66,6 @@ class DB():
             self.handle holds the connection
             _query is the query
             _params holds the variables need by the query
-        """
-
-        """
-            replace all instances of ? to %s la :D YOLO programming best!
         """
 
         query = re.sub("\?", "%s", _query)
@@ -132,3 +129,34 @@ class DB():
 
         else:
             return self.handle.escape(temp)
+
+
+class ConnectionPool():
+
+    def __init__(self, conf, max_pool_size=20):
+        self.conf = conf
+        self.max_pool_size = max_pool_size
+        self.initialize_pool()
+
+    def get_initialized_connection_pool(self):
+        return self.pool
+
+    def initialize_pool(self):
+        self.pool = Queue(maxsize=self.max_pool_size)
+        for _ in range(0, self.max_pool_size):
+            self.pool.put_nowait(DB(self.conf, True))
+
+    def get_connection(self):
+        # returns a db instance when one is available
+        db = self.pool.get(True)
+        if not self.ping(db):
+            db.connect()
+
+        return db
+
+    def return_connection(self, db):
+        return self.pool.put_nowait(db)
+
+    def ping(self, db):
+        data = db.query('SELECT 1', [])
+        return data
