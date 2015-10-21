@@ -13,6 +13,7 @@ from queue import Queue
 class DB():
 
     def __init__(self, conf, autoconnect=False):
+        self.logger = logging.getLogger('database')
         self.host = conf['host']
         self.user = conf['user']
         self.password = conf['password']
@@ -20,7 +21,6 @@ class DB():
         self.port = int(conf['port'])
         self.handle = None
         self.connected = False
-        self.logger = logging.getLogger('database')
 
         if autoconnect:
             self.connect()
@@ -94,7 +94,12 @@ class DB():
         try:
             with self.handle.cursor() as cursor:
                 cursor.execute(query, ())
-                result = cursor.fetchall()
+                
+                if 'insert' in query.lower() or 'update' in query.lower():
+                    result = { 'affected_rows': cursor.rowcount }
+                else:
+                    result = list(cursor.fetchall())
+
         except Exception as err:
             self.logger.warn(err)
             return None
