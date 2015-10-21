@@ -157,6 +157,10 @@ class ConnectionPool():
     def return_connection(self, db):
         return self.pool.put_nowait(db)
 
+    def close_pool(self):
+        while not self.pool.empty():
+            self.pool.get().close()
+
     def ping(self, db):
         data = db.query('SELECT 1', [])
         return data
