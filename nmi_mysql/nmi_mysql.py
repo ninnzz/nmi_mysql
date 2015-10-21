@@ -94,9 +94,9 @@ class DB():
         try:
             with self.handle.cursor() as cursor:
                 cursor.execute(query, ())
-                
+
                 if 'insert' in query.lower() or 'update' in query.lower():
-                    result = { 'affected_rows': cursor.rowcount }
+                    result = {'affected_rows': cursor.rowcount}
                 else:
                     result = list(cursor.fetchall())
 
