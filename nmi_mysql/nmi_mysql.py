@@ -109,7 +109,7 @@ class DB():
                 params.append(self.to_string(param))
 
         if values:
-            params = ','.join(values)
+            params = ', '.join(values)
             query = query % params[1:-1]
 
         else:
@@ -119,14 +119,22 @@ class DB():
 
     def to_string(self, temp):
         if isinstance(temp, (list, tuple)):
-            tmp = ''
+            tmp = []
             for item in temp:
-                tmp += ','
                 if isinstance(item, str):
                     item = item.replace('%', '%%')
-                tmp += self.handle.escape(item)
+                tmp.append(self.handle.escape(item))
 
-            return tmp[1:]
+            return ', '.join(tmp)
+
+        elif isinstance(temp, dict):
+            tmp = []
+            for key in temp:
+                if isinstance(temp[key], str):
+                    temp[key] = temp[key].replace('%', '%%')
+                tmp.append(key + ' = ' + self.handle.escape(temp[key]))
+
+            return ', '.join(tmp)
 
         elif isinstance(temp, str):
             return self.handle.escape(temp.replace('%', '%%'))
