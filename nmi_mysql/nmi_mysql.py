@@ -6,7 +6,6 @@
 import re
 import logging
 import pymysql.cursors
-
 from queue import Queue
 
 
@@ -61,42 +60,28 @@ class DB():
 
         return None
 
-    def query(self, _query, _params):
+    def query(self, _query, _params=None):
         """
             self.handle holds the connection
             _query is the query
             _params holds the variables need by the query
         """
 
-        query = re.sub("\?", "%s", _query)
         result = None
+        query = _query
 
-        if isinstance(_params, list):
-            params = []
-            values = []
-            for param in _params:
-                if isinstance(param, tuple):
-                    values.append('(' + self.to_string(param) + ')')
-
-                else:
-                    params.append(self.to_string(param))
-
-            if values:
-                params = ','.join(values)
-                query = query % params[1:-1]
-
-            else:
-                query = query % tuple(params)
-
-        else:
-            query = query % self.to_string(_params)
+        if _params:
+            query = self.generate_query(_query, _params)
 
         try:
             with self.handle.cursor() as cursor:
                 cursor.execute(query, ())
 
                 if 'insert' in query.lower() or 'update' in query.lower():
-                    result = {'affected_rows': cursor.rowcount}
+                    result = {
+                        'affected_rows': cursor.rowcount
+                    }
+
                 else:
                     result = list(cursor.fetchall())
 
@@ -108,26 +93,48 @@ class DB():
 
         return result
 
-    def execute_many(self, _query, _params):
-        try:
-            with self.handle.cursor() as cursor:
-                cursor.executemany(_query, _params)
-        except Exception as err:
-            self.logger.warn(err)
-            return None
+    def generate_query(self, _query, _params):
+        query = re.sub('\?', '%s', _query)
 
-        self.handle.commit()
+        if not isinstance(_params, list):
+            return query % self.to_string(_params)
+
+        params = []
+        values = []
+        for param in _params:
+            if isinstance(param, tuple):
+                values.append('(' + self.to_string(param) + ')')
+
+            else:
+                params.append(self.to_string(param))
+
+        if values:
+            params = ', '.join(values)
+            query = query % params[1:-1]
+
+        else:
+            query = query % tuple(params)
+
+        return query
 
     def to_string(self, temp):
         if isinstance(temp, (list, tuple)):
-            tmp = ''
+            tmp = []
             for item in temp:
-                tmp += ','
                 if isinstance(item, str):
                     item = item.replace('%', '%%')
-                tmp += self.handle.escape(item)
+                tmp.append(self.handle.escape(item))
 
-            return tmp[1:]
+            return ', '.join(tmp)
+
+        elif isinstance(temp, dict):
+            tmp = []
+            for key in temp:
+                if isinstance(temp[key], str):
+                    temp[key] = temp[key].replace('%', '%%')
+                tmp.append(key + ' = ' + self.handle.escape(temp[key]))
+
+            return ', '.join(tmp)
 
         elif isinstance(temp, str):
             return self.handle.escape(temp.replace('%', '%%'))
