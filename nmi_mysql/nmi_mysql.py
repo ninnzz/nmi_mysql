@@ -109,16 +109,13 @@ class DB():
 
         self.handle.commit()
 
-    def handle_val(self, temp):
-        if isinstance(temp, str):
+    def to_string(self, temp):        
+        if isinstance(temp, (list, tuple)):
+            _tmp = ', '.join([self.to_string(t) for t in temp])
+            return '(' + _tmp + ')' if isinstance(temp, tuple) else _tmp
+        
+        elif isinstance(temp, str):
             return self.handle.escape(temp.replace('%', '%%'))
 
         else:
             return self.handle.escape(temp)
-
-    def to_string(self, temp):        
-        if isinstance(temp, (list, tuple)):
-            _tmp = ', '.join([self.handle_val(t) for t in temp])
-            return '(' + _tmp + ')' if isinstance(temp, tuple) else _tmp
-        
-        return self.handle_val(temp)
