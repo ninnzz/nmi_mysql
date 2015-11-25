@@ -6,7 +6,8 @@
 import re
 import logging
 import pymysql.cursors
-from datetime import datetime
+
+from queue import Queue
 
 
 class DB():
@@ -67,10 +68,6 @@ class DB():
             _params holds the variables need by the query
         """
 
-        """
-            replace all instances of ? to %s la :D YOLO programming best!
-        """
-
         query = re.sub("\?", "%s", _query)
         result = None
 
@@ -97,9 +94,9 @@ class DB():
         try:
             with self.handle.cursor() as cursor:
                 cursor.execute(query, ())
-                
+
                 if 'insert' in query.lower() or 'update' in query.lower():
-                    result = { 'affected_rows': cursor.rowcount }
+                    result = {'affected_rows': cursor.rowcount}
                 else:
                     result = list(cursor.fetchall())
 
@@ -137,3 +134,52 @@ class DB():
 
         else:
             return self.handle.escape(temp)
+
+
+class ConnectionPool():
+    """
+    Usage:
+        conn_pool = nmi_mysql.ConnectionPool(config)
+
+        db = conn_pool.get_connection()
+        db.query('SELECT 1', [])
+        conn_pool.return_connection(db)
+
+        conn_pool.close()
+    """
+    def __init__(self, conf, max_pool_size=20):
+        self.conf = conf
+        self.max_pool_size = max_pool_size
+        self.initialize_pool()
+
+    def initialize_pool(self):
+        self.pool = Queue(maxsize=self.max_pool_size)
+        for _ in range(0, self.max_pool_size):
+            self.pool.put_nowait(DB(self.conf, True))
+
+    def get_connection(self):
+        # returns a db instance when one is available else waits until one is
+        db = self.pool.get(True)
+
+        # checks if db is still connected because db instance automatically closes when not in used
+        if not self.ping(db):
+            db.connect()
+
+        return db
+
+    def return_connection(self, db):
+        return self.pool.put_nowait(db)
+
+    def close(self):
+        while not self.is_empty():
+            self.pool.get().close()
+
+    def ping(self, db):
+        data = db.query('SELECT 1', [])
+        return data
+
+    def get_initialized_connection_pool(self):
+        return self.pool
+
+    def is_empty(self):
+        return self.pool.empty()
