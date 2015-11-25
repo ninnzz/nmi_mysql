@@ -75,21 +75,8 @@ class DB():
         result = None
 
         if isinstance(_params, list):
-            params = []
-            values = []
-            for param in _params:
-                if isinstance(param, tuple):
-                    values.append('(' + self.to_string(param) + ')')
-
-                else:
-                    params.append(self.to_string(param))
-
-            if values:
-                params = ','.join(values)
-                query = query % params[1:-1]
-
-            else:
-                query = query % tuple(params)
+            params = tuple(self.to_string(p) for p in _params)
+            query = query % params
 
         else:
             query = query % self.to_string(_params)
@@ -104,9 +91,10 @@ class DB():
                     result = list(cursor.fetchall())
 
         except Exception as err:
+            self.logger.warn(query)
             self.logger.warn(err)
-            return None
-
+            raise err
+        
         self.handle.commit()
 
         return result
@@ -117,23 +105,20 @@ class DB():
                 cursor.executemany(_query, _params)
         except Exception as err:
             self.logger.warn(err)
-            return None
+            raise err
 
         self.handle.commit()
 
-    def to_string(self, temp):
-        if isinstance(temp, (list, tuple)):
-            tmp = ''
-            for item in temp:
-                tmp += ','
-                if isinstance(item, str):
-                    item = item.replace('%', '%%')
-                tmp += self.handle.escape(item)
-
-            return tmp[1:]
-
-        elif isinstance(temp, str):
+    def handle_val(self, temp):
+        if isinstance(temp, str):
             return self.handle.escape(temp.replace('%', '%%'))
 
         else:
             return self.handle.escape(temp)
+
+    def to_string(self, temp):        
+        if isinstance(temp, (list, tuple)):
+            _tmp = ', '.join([self.handle_val(t) for t in temp])
+            return '(' + _tmp + ')' if isinstance(temp, tuple) else _tmp
+        
+        return self.handle_val(temp)
