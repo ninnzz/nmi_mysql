@@ -1,6 +1,6 @@
 nmi-mysql
 =======================
-
+[![PyPI version](https://badge.fury.io/py/nmi_mysql.svg)](https://badge.fury.io/py/nmi_mysql)
 A very simple and intuative mysql client wrapper for pymysql.
 
 ## Installation
