@@ -20,7 +20,10 @@ from nmi_mysql import nmi_mysql
 - Initialization: Accepts two parameters, first being the config object and the second specifying if autoconnect to db is enabled. If set to false, call `con.connect()` 
 
 ```python
-con = nmi_mysql.DB(conf, True)
+try:
+    con = nmi_mysql.DB(conf, True)
+except Exception as err:
+    print(err)
 ```
 - Query execution: Accepts two parameters. The first is the query and the second is the list of parameters to be used. See example below
 
@@ -67,7 +70,9 @@ from nmi_mysql import nmi_mysql
 connection = nmi_mysql.DB(conf, True)
 
 # Throws an error upon failure
-result = connection.query('INSERT INTO users VALUES(%s)', [user_object])
-
+try:
+    result = connection.query('INSERT INTO users VALUES(%s)', [user_object])
+except Exception as err:
+    print(err)
 connection.close()
 ```
