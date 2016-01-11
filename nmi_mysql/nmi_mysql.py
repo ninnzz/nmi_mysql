@@ -39,7 +39,7 @@ class DB():
             self.logger.error('Failed to connect to db')
             self.logger.warn('Error:')
             self.logger.info(err)
-            return None
+            raise err
 
         self.logger.info('Connection to mysql')
         self.connected = True
@@ -57,6 +57,7 @@ class DB():
         except Exception as err:
             self.logger.warn('Failed to close connection')
             self.logger.warn(err)
+            raise err
 
         return None
 
@@ -87,7 +88,7 @@ class DB():
 
         except Exception as err:
             self.logger.warn(err)
-            return None
+            raise err
 
         self.handle.commit()
 
