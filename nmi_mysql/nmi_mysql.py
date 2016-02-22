@@ -77,13 +77,13 @@ class DB():
             with self.handle.cursor() as cursor:
                 cursor.execute(query, ())
 
-                if 'insert' in query.lower() or 'update' in query.lower():
+                if query.lower().find('select') == 0:
+                    result = list(cursor.fetchall())
+
+                else:
                     result = {
                         'affected_rows': cursor.rowcount
                     }
-
-                else:
-                    result = list(cursor.fetchall())
 
         except Exception as err:
             self.logger.warn(err)
@@ -154,6 +154,7 @@ class ConnectionPool():
 
         conn_pool.close()
     """
+
     def __init__(self, conf, max_pool_size=20):
         self.conf = conf
         self.max_pool_size = max_pool_size
@@ -168,7 +169,8 @@ class ConnectionPool():
         # returns a db instance when one is available else waits until one is
         db = self.pool.get(True)
 
-        # checks if db is still connected because db instance automatically closes when not in used
+        # checks if db is still connected because db instance automatically
+        # closes when not in used
         if not self.ping(db):
             db.connect()
 
