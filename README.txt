@@ -13,6 +13,9 @@ Ideal for performing simple and raw operations in mysql.
     * pymysql (http://www.pymysql.org/)
 
 **Change Log**
+    * v.0.63
+	* removed unecessary error message upon close
+	* raise error instead of returning None
     * v.0.62
         * returns affected rows when executing insert and update
         * defaults the return type for select to lists
