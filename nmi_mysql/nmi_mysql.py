@@ -9,7 +9,7 @@ import pymysql.cursors
 from queue import Queue
 
 
-class DB():
+class DB(object):
 
     def __init__(self, conf, autoconnect=False):
         self.logger = logging.getLogger('database')
@@ -143,7 +143,7 @@ class DB():
             return self.handle.escape(temp)
 
 
-class ConnectionPool():
+class ConnectionPool(object):
     """
     Usage:
         conn_pool = nmi_mysql.ConnectionPool(config)
