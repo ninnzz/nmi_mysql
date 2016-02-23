@@ -5,7 +5,7 @@ nmi-mysql
 [![Code Health](https://landscape.io/github/pprmint/nmi_mysql/master/landscape.svg?style=flat)](https://landscape.io/github/pprmint/nmi_mysql/master)
 
 
-A very simple and intuative mysql client wrapper for pymysql.
+A very simple and intuitive mysql client wrapper for pymysql.
 
 ## Installation
 
