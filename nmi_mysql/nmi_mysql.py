@@ -77,7 +77,7 @@ class DB(object):
             with self.handle.cursor() as cursor:
                 cursor.execute(query, ())
 
-                if query.lower().find('select') == 0:
+                if query.lower().strip().find('select') == 0:
                     result = list(cursor.fetchall())
 
                 else:
