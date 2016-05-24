@@ -14,7 +14,7 @@ CONFIG_KEYS = ['host', 'user', 'password', 'db', 'port']
 
 class DB(object):
 
-    def __init__(self, conf, max_pool_size=20):
+    def __init__(self, conf, max_pool_size=10):
         for c in CONFIG_KEYS:
             if c not in conf:
                 raise ValueError('Invalid config object')
@@ -30,14 +30,15 @@ class DB(object):
             self.pool.put_nowait(Connection(self.conf))
 
     def connect(self):
-        con = self.pool.get(True)
+        con = self.pool.get()
         con.connect()
 
         return con
 
     def close(self, con):
-        con.close()
-        self.pool.put_nowait(con)
+        if isinstance(con, Connection):
+            con.close()
+            self.pool.put(con)
 
 
 class Connection(object):
