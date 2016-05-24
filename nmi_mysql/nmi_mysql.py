@@ -11,7 +11,31 @@ from queue import Queue
 
 class DB(object):
 
-    def __init__(self, conf, autoconnect=False):
+    def __init__(self, conf, max_pool_size=20):
+        self.conf = conf
+        self.max_pool_size = max_pool_size
+        self._initialize_pool()
+
+    def _initialize_pool(self):
+        self.pool = Queue(maxsize=self.max_pool_size)
+
+        for _ in range(0, self.max_pool_size):
+            self.pool.put_nowait(Connection(self.conf))
+
+    def connect(self):
+        con = self.pool.get(True)
+        con.connect()
+
+        return con
+
+    def close(self, con):
+        con.close()
+        self.pool.put_nowait(con)
+
+
+class Connection(object):
+
+    def __init__(self, conf):
         self.logger = logging.getLogger('database')
         self.host = conf['host']
         self.user = conf['user']
@@ -21,29 +45,34 @@ class DB(object):
         self.handle = None
         self.connected = False
 
-        if autoconnect:
-            self.connect()
-
     def __del__(self):
         self.close()
 
     def connect(self):
-
         self.logger.info('Trying to connect to mysql database')
+
         try:
-            con = pymysql.connect(host=self.host, user=self.user, password=self.password,
-                                  db=self.db_conn, port=self.port, charset='utf8mb4',
-                                  cursorclass=pymysql.cursors.DictCursor)
+            con = pymysql.connect(
+                host=self.host,
+                user=self.user,
+                password=self.password,
+                db=self.db_conn,
+                port=self.port,
+                charset='utf8mb4',
+                cursorclass=pymysql.cursors.DictCursor
+            )
 
         except Exception as err:
             self.logger.error('Failed to connect to db')
             self.logger.warn('Error:')
             self.logger.info(err)
+
             raise err
 
         self.logger.info('Connection to mysql')
         self.connected = True
         self.handle = con
+
         return True
 
     def close(self):
@@ -56,6 +85,7 @@ class DB(object):
         except Exception as err:
             self.logger.warn('Failed to close connection')
             self.logger.warn(err)
+
             raise err
 
         return None
@@ -141,54 +171,3 @@ class DB(object):
 
         else:
             return self.handle.escape(temp)
-
-
-class ConnectionPool(object):
-    """
-    Usage:
-        conn_pool = nmi_mysql.ConnectionPool(config)
-
-        db = conn_pool.get_connection()
-        db.query('SELECT 1', [])
-        conn_pool.return_connection(db)
-
-        conn_pool.close()
-    """
-
-    def __init__(self, conf, max_pool_size=20):
-        self.conf = conf
-        self.max_pool_size = max_pool_size
-        self.initialize_pool()
-
-    def initialize_pool(self):
-        self.pool = Queue(maxsize=self.max_pool_size)
-        for _ in range(0, self.max_pool_size):
-            self.pool.put_nowait(DB(self.conf, True))
-
-    def get_connection(self):
-        # returns a db instance when one is available else waits until one is
-        db = self.pool.get(True)
-
-        # checks if db is still connected because db instance automatically
-        # closes when not in used
-        if not self.ping(db):
-            db.connect()
-
-        return db
-
-    def return_connection(self, db):
-        return self.pool.put_nowait(db)
-
-    def close(self):
-        while not self.is_empty():
-            self.pool.get().close()
-
-    def ping(self, db):
-        data = db.query('SELECT 1', [])
-        return data
-
-    def get_initialized_connection_pool(self):
-        return self.pool
-
-    def is_empty(self):
-        return self.pool.empty()
