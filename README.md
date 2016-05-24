@@ -20,26 +20,33 @@ Minimal and straightforward when doing queries
 ```python
 from nmi_mysql import nmi_mysql
 ```
-- Initialization: Accepts two parameters, first being the config object and the second specifying if autoconnect to db is enabled. If set to false, call `con.connect()` 
+
+- Initialization: Accepts two parameters, first being the config object and the second specifying the maximum number of connections in the pool (default is 20)
 
 ```python
-try:
-    con = nmi_mysql.DB(conf, True)
-except Exception as err:
-    print(err)
+db = nmi_mysql.DB(conf)
 ```
+
+- Getting connection
+
+```python
+con = db.connect()
+```
+
 - Query execution: Accepts two parameters. The first is the query and the second is the list of parameters to be used. See example below
 
 ```python
 data = con.query(query, params)
 ```
-- Closing connection
+
+- Closing connection: Accepts one parameter which is the connection to be returned to the pool
 
 ```python
-con.close()
+db.close(con)
 ```
 
 **Sample config object**
+
 ```python
 conf = {
     'host': 'localhost',
@@ -51,31 +58,35 @@ conf = {
 ```
 
 ##### SELECT operations
+
 ```python
 from nmi_mysql import nmi_mysql
 
-connection = nmi_mysql.DB(conf, True)
+db = nmi_mysql.DB(conf)
+con = db.connect()
 
-data1 = connection.query('SELECT * FROM mytable WHERE name = %s', ['ninz'])
-data2 = connection.query('SELECT * FROM mytable WHERE name IN (%s) AND age = %s', [['john', 'doe'], 10])
+data1 = con.query('SELECT * FROM mytable WHERE name = %s', ['ninz'])
+data2 = con.query('SELECT * FROM mytable WHERE name IN (%s) AND age = %s', [['john', 'doe'], 10])
 
-connection.close()
+db.close(con)
 
 print(data)
 print(data2)
-
 ```
 
 ##### INSERT operations
+
 ```python
 from nmi_mysql import nmi_mysql
 
-connection = nmi_mysql.DB(conf, True)
+db = nmi_mysql.DB(conf)
+con = db.connect()
 
 # Throws an error upon failure
 try:
-    result = connection.query('INSERT INTO users VALUES(%s)', [user_object])
+    result = con.query('INSERT INTO users VALUES(%s)', [user_object])
 except Exception as err:
     print(err)
-connection.close()
+
+db.close(con)
 ```
