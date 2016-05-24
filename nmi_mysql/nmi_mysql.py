@@ -15,11 +15,9 @@ CONFIG_KEYS = ['host', 'user', 'password', 'db', 'port']
 class DB(object):
 
     def __init__(self, conf, max_pool_size=20):
-        self.logger = logging.getLogger('database')
-
         for c in CONFIG_KEYS:
             if c not in conf:
-                return self.logger.error('Invalid config object')
+                raise ValueError('Invalid config object')
 
         self.conf = conf
         self.max_pool_size = max_pool_size
