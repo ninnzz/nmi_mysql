@@ -21,7 +21,7 @@ Minimal and straightforward when doing queries
 from nmi_mysql import nmi_mysql
 ```
 
-- Initialization: Accepts two parameters, first being the config object and the second specifying the maximum number of connections in the pool (default is 20)
+- Initialization: Accepts one parameter, which is the config object
 
 ```python
 db = nmi_mysql.DB(conf)
@@ -53,7 +53,8 @@ conf = {
     'user': 'root',
     'password':'',
     'db': 'mydb',
-    'port': 3306    
+    'port': 3306,
+    'max_pool_size': 20     # optional, default is 10
 }
 ```
 

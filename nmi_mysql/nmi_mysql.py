@@ -10,17 +10,18 @@ from queue import Queue
 
 
 CONFIG_KEYS = ['host', 'user', 'password', 'db', 'port']
+MAX_POOL_SIZE = 10
 
 
 class DB(object):
 
-    def __init__(self, conf, max_pool_size=10):
+    def __init__(self, conf):
         for c in CONFIG_KEYS:
             if c not in conf:
                 raise ValueError('Invalid config object')
 
         self.conf = conf
-        self.max_pool_size = max_pool_size
+        self.max_pool_size = conf.get('max_pool_size', MAX_POOL_SIZE)
         self._initialize_pool()
 
     def _initialize_pool(self):
