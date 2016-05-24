@@ -36,9 +36,11 @@ class DB(object):
         return con
 
     def close(self, con):
-        if isinstance(con, Connection):
-            con.close()
-            self.pool.put(con)
+        if not isinstance(con, Connection):
+            raise ValueError('Invalid connection object')
+
+        con.close()
+        self.pool.put(con)
 
 
 class Connection(object):
