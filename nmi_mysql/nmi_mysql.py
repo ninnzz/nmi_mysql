@@ -28,23 +28,21 @@ class DB(object):
         self.pool = Queue(maxsize=self.max_pool_size)
 
         for _ in range(0, self.max_pool_size):
-            self.pool.put_nowait(Connection(self.conf))
+            self.pool.put(_Connection(self.conf))
 
-    def connect(self):
+    def query(self, query, params=None):
         con = self.pool.get()
         con.connect()
 
-        return con
-
-    def close(self, con):
-        if not isinstance(con, Connection):
-            raise ValueError('Invalid connection object')
+        result = con.query(query, params)
 
         con.close()
         self.pool.put(con)
 
+        return result
 
-class Connection(object):
+
+class _Connection(object):
 
     def __init__(self, conf):
         self.logger = logging.getLogger('database')

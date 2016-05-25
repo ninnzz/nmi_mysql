@@ -27,22 +27,10 @@ from nmi_mysql import nmi_mysql
 db = nmi_mysql.DB(conf)
 ```
 
-- Getting connection
-
-```python
-con = db.connect()
-```
-
 - Query execution: Accepts two parameters. The first is the query and the second is the list of parameters to be used. See example below
 
 ```python
-data = con.query(query, params)
-```
-
-- Closing connection: Accepts one parameter which is the connection to be returned to the pool
-
-```python
-db.close(con)
+data = db.query(query, params)
 ```
 
 **Sample config object**
@@ -64,12 +52,9 @@ conf = {
 from nmi_mysql import nmi_mysql
 
 db = nmi_mysql.DB(conf)
-con = db.connect()
 
-data1 = con.query('SELECT * FROM mytable WHERE name = %s', ['ninz'])
-data2 = con.query('SELECT * FROM mytable WHERE name IN (%s) AND age = %s', [['john', 'doe'], 10])
-
-db.close(con)
+data1 = db.query('SELECT * FROM mytable WHERE name = %s', ['ninz'])
+data2 = db.query('SELECT * FROM mytable WHERE name IN (%s) AND age = %s', [['john', 'doe'], 10])
 
 print(data)
 print(data2)
@@ -81,13 +66,10 @@ print(data2)
 from nmi_mysql import nmi_mysql
 
 db = nmi_mysql.DB(conf)
-con = db.connect()
 
 # Throws an error upon failure
 try:
-    result = con.query('INSERT INTO users VALUES(%s)', [user_object])
+    result = db.query('INSERT INTO users VALUES(%s)', [user_object])
 except Exception as err:
     print(err)
-
-db.close(con)
 ```
