@@ -5,13 +5,13 @@ nmi-mysql
 [![Code Health](https://landscape.io/github/pprmint/nmi_mysql/master/landscape.svg?style=flat)](https://landscape.io/github/pprmint/nmi_mysql/master)
 
 
-A very simple and intuitive mysql client wrapper for pymysql.
+A very simple and intuitive mysql client wrapper for sqlalchemy.
 
 ## Installation
 
 
 - Run the command to install: `pip install nmi_mysql`
-- Make sure you install `pymysql`. You can check out the instructions [here](http://www.pymysql.org/)
+- Make sure you install [`sqlalchemy`](http://www.sqlalchemy.org/) and [`pymysql`](http://www.pymysql.org/)
 
 ## Usage
 Minimal and straightforward when doing queries
@@ -27,10 +27,22 @@ from nmi_mysql import nmi_mysql
 db = nmi_mysql.DB(conf)
 ```
 
+- Connection
+
+```python
+db.connect()
+```
+
 - Query execution: Accepts two parameters. The first is the query and the second is the list of parameters to be used. See example below
 
 ```python
 data = db.query(query, params)
+```
+
+- Closing connection
+
+```python
+db.close()
 ```
 
 **Sample config object**
@@ -52,12 +64,15 @@ conf = {
 from nmi_mysql import nmi_mysql
 
 db = nmi_mysql.DB(conf)
+db.connect()
 
 data1 = db.query('SELECT * FROM mytable WHERE name = %s', ['ninz'])
 data2 = db.query('SELECT * FROM mytable WHERE name IN (%s) AND age = %s', [['john', 'doe'], 10])
 
 print(data)
 print(data2)
+
+db.close()
 ```
 
 ##### INSERT operations
@@ -66,10 +81,13 @@ print(data2)
 from nmi_mysql import nmi_mysql
 
 db = nmi_mysql.DB(conf)
+db.connect()
 
 # Throws an error upon failure
 try:
     result = db.query('INSERT INTO users VALUES(%s)', [user_object])
 except Exception as err:
     print(err)
+
+db.close()
 ```

@@ -1,12 +1,13 @@
 """
-    Custom mysql wrapper for pymysql
-    Usefull for raw queries and scripting
+    Custom mysql wrapper for sqlalchemy
+    Useful for raw queries and scripting
 """
+
+from sqlalchemy import create_engine, text
+from pymysql.converters import escape_item, escape_string
 
 import re
 import logging
-import pymysql.cursors
-from queue import Queue
 
 
 CONFIG_KEYS = ['host', 'user', 'password', 'db', 'port']
@@ -20,132 +21,40 @@ class DB(object):
             if c not in conf:
                 raise ValueError('Invalid config object')
 
-        self.conf = conf
-        self.max_pool_size = conf.get('max_pool_size', MAX_POOL_SIZE)
-        self._initialize_pool()
-
-    def _initialize_pool(self):
-        self.pool = Queue(maxsize=self.max_pool_size)
-
-        for _ in range(0, self.max_pool_size):
-            self.pool.put(_Connection(self.conf))
-
-    def query(self, query, params=None):
-        con = self.pool.get()
-        con.connect()
-
-        result = con.query(query, params)
-
-        con.close()
-        self.pool.put(con)
-
-        return result
-
-
-class _Connection(object):
-
-    def __init__(self, conf):
         self.logger = logging.getLogger('database')
-        self.host = conf['host']
-        self.user = conf['user']
-        self.password = conf['password']
-        self.db_conn = conf['db']
-        self.port = int(conf['port'])
-        self.handle = None
-        self.connected = False
+        self.charset = 'utf8mb4'
+        self.con = None
 
-    def __del__(self):
-        self.close()
+        self.engine = create_engine(
+            self._sql_alchemy_format(conf),
+            pool_size=conf.get('max_pool_size', MAX_POOL_SIZE)
+        )
 
-    def connect(self):
-        self.logger.info('Trying to connect to mysql database')
+    def _sql_alchemy_format(self, conf):
+        return ''.join([
+            'mysql+pymysql://',
+            conf['user'] + ':',
+            conf['password'] + '@',
+            conf['host'] + ':',
+            str(conf['port']) + '/',
+            conf['db'],
+            '?charset=' + self.charset
+        ])
 
-        try:
-            con = pymysql.connect(
-                host=self.host,
-                user=self.user,
-                password=self.password,
-                db=self.db_conn,
-                port=self.port,
-                charset='utf8mb4',
-                cursorclass=pymysql.cursors.DictCursor
-            )
-
-        except Exception as err:
-            self.logger.error('Failed to connect to db')
-            self.logger.warn('Error:')
-            self.logger.info(err)
-
-            raise err
-
-        self.logger.info('Connection to mysql')
-        self.connected = True
-        self.handle = con
-
-        return True
-
-    def close(self):
-        try:
-            if self.connected:
-                self.handle.close()
-                self.connected = False
-                self.handle = None
-
-        except Exception as err:
-            self.logger.warn('Failed to close connection')
-            self.logger.warn(err)
-
-            raise err
-
-        return None
-
-    def query(self, _query, _params=None):
-        """
-            self.handle holds the connection
-            _query is the query
-            _params holds the variables need by the query
-        """
-
-        result = None
-        query = _query
-
-        if _params:
-            query = self.generate_query(_query, _params)
-
-        try:
-            with self.handle.cursor() as cursor:
-                cursor.execute(query, ())
-
-                if query.lower().strip().find('select') == 0:
-                    result = list(cursor.fetchall())
-
-                else:
-                    result = {
-                        'affected_rows': cursor.rowcount
-                    }
-
-        except Exception as err:
-            self.logger.warn(err)
-            raise err
-
-        self.handle.commit()
-
-        return result
-
-    def generate_query(self, _query, _params):
+    def _generate_query(self, _query, _params):
         query = re.sub('\?', '%s', _query)
 
         if not isinstance(_params, list):
-            return query % self.to_string(_params)
+            return query % self._to_string(_params)
 
         params = []
         values = []
         for param in _params:
             if isinstance(param, tuple):
-                values.append('(' + self.to_string(param) + ')')
+                values.append('(' + self._to_string(param) + ')')
 
             else:
-                params.append(self.to_string(param))
+                params.append(self._to_string(param))
 
         if values:
             params = ', '.join(values)
@@ -156,27 +65,56 @@ class _Connection(object):
 
         return query
 
-    def to_string(self, temp):
+    def _to_string(self, temp):
         if isinstance(temp, (list, tuple)):
             tmp = []
             for item in temp:
-                if isinstance(item, str):
-                    item = item.replace('%', '%%')
-                tmp.append(self.handle.escape(item))
+                tmp.append(self._to_string(item))
 
             return ', '.join(tmp)
 
         elif isinstance(temp, dict):
             tmp = []
             for key in temp:
-                if isinstance(temp[key], str):
-                    temp[key] = temp[key].replace('%', '%%')
-                tmp.append(key + ' = ' + self.handle.escape(temp[key]))
+                tmp.append(key + ' = ' + self._to_string(temp[key]))
 
             return ', '.join(tmp)
 
         elif isinstance(temp, str):
-            return self.handle.escape(temp.replace('%', '%%'))
+            return escape_string(temp.replace('%', '%%'))
 
         else:
-            return self.handle.escape(temp)
+            return escape_item(temp, self.charset)
+
+    def connect(self):
+        self.con = self.engine.connect()
+
+    def close(self):
+        self.con.close()
+
+    def query(self, _query, _params=None):
+        if not self.con:
+            self.connect()
+
+        result = None
+        query = _query
+
+        if _params:
+            query = self._generate_query(_query, _params)
+
+        try:
+            result = self.con.execute(text(query))
+
+            if query.lower().strip().find('select') == 0:
+                return [dict(row) or row for row in result]
+
+            else:
+                return {
+                    'affected_rows': result.rowcount
+                }
+
+        except Exception as err:
+            self.logger.warn(err)
+            raise err
+
+        return result

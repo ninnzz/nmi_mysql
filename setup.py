@@ -7,7 +7,7 @@ setup(
     name='nmi_mysql',
     packages=['nmi_mysql'],
     version='0.64',
-    description='A simple mysql client wrapper for pymysql',
+    description='A simple mysql client wrapper for sqlalchemy',
     author='Ninz, Jasper, Jv, Sherwin',
     author_email='ninz.xp@gmail.com',
     url='https://github.com/pprmint/nmi_mysql',
