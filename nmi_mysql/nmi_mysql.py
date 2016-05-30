@@ -3,8 +3,7 @@
     Useful for raw queries and scripting
 """
 
-from sqlalchemy import create_engine, text
-from pymysql.converters import escape_item, escape_string
+from sqlalchemy import create_engine
 
 import re
 import logging
@@ -45,28 +44,37 @@ class DB(object):
         query = re.sub('\?', '%s', _query)
 
         if not isinstance(_params, list):
-            return query % self._to_string(_params)
+            return (query % self._to_string(_params), _params)
 
         params = []
-        values = []
+        multi_insert = []
+        other_queries = []
+
         for param in _params:
-            if isinstance(param, tuple):
-                values.append('(' + self._to_string(param) + ')')
+            if isinstance(param, list):
+                params.extend(param)
+
+            elif isinstance(param, dict):
+                for key in param:
+                    params.append(param[key])
 
             else:
-                params.append(self._to_string(param))
+                params.append(param)
 
-        if values:
-            params = ', '.join(values)
-            query = query % params[1:-1]
+            if isinstance(param, tuple):
+                multi_insert.append(self._to_string(param))
+
+            else:
+                other_queries.append(self._to_string(param))
+
+        if multi_insert:
+            return (query % ', '.join(multi_insert), params)
 
         else:
-            query = query % tuple(params)
-
-        return query
+            return (query % tuple(other_queries), params)
 
     def _to_string(self, temp):
-        if isinstance(temp, (list, tuple)):
+        if isinstance(temp, list):
             tmp = []
             for item in temp:
                 tmp.append(self._to_string(item))
@@ -80,11 +88,7 @@ class DB(object):
 
             return ', '.join(tmp)
 
-        elif isinstance(temp, str):
-            return escape_string(temp.replace('%', '%%'))
-
-        else:
-            return escape_item(temp, self.charset)
+        return '%s'
 
     def connect(self):
         self.con = self.engine.connect()
@@ -97,13 +101,11 @@ class DB(object):
             self.connect()
 
         result = None
-        query = _query
 
-        if _params:
-            query = self._generate_query(_query, _params)
+        (query, params) = self._generate_query(_query, _params)
 
         try:
-            result = self.con.execute(text(query))
+            result = self.con.execute(query, *params)
 
             if query.lower().strip().find('select') == 0:
                 return [dict(row) or row for row in result]

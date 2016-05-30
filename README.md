@@ -11,7 +11,7 @@ A very simple and intuitive mysql client wrapper for sqlalchemy.
 
 
 - Run the command to install: `pip install nmi_mysql`
-- Make sure you install [`sqlalchemy`](http://www.sqlalchemy.org/) and [`pymysql`](http://www.pymysql.org/)
+- Make sure you install [`sqlalchemy`](http://www.sqlalchemy.org/)
 
 ## Usage
 Minimal and straightforward when doing queries
@@ -85,9 +85,23 @@ db.connect()
 
 # Throws an error upon failure
 try:
-    result = db.query('INSERT INTO users VALUES(%s)', [user_object])
+    result = db.query('INSERT INTO users(id, name) VALUES (%s)', [(1, 'jasper'), (2, 'jv')])
 except Exception as err:
     print(err)
+
+db.close()
+```
+
+##### UPDATE operations
+
+```python
+from nmi_mysql import nmi_mysql
+
+db = nmi_mysql.DB(conf)
+db.connect()
+
+result1 = db.query('UPDATE users SET %s WHERE name = %s', [{'name': 'ninz'}, 'jasper'])
+result2 = db.query('UPDATE users SET name = %s WHERE id IN (%s)', ['sherwin', [1, 2]])
 
 db.close()
 ```
