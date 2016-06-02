@@ -2,7 +2,7 @@
 nmi_mysql
 ==========
 
-A simple and intuative mysql client wrapper for pymysql.
+A simple and intuative mysql client wrapper for sqlalchemy.
 Ideal for performing simple and raw operations in mysql.
 
 **Installation:**
@@ -10,6 +10,7 @@ Ideal for performing simple and raw operations in mysql.
 
 **Dependencies**
     * Python 3.4+
+    * sqlalchemy (http://www.sqlalchemy.org/)
     * pymysql (http://www.pymysql.org/)
 
 **Change Log**

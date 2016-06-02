@@ -9,13 +9,14 @@ A very simple and intuitive mysql client wrapper for sqlalchemy.
 
 ## Installation
 
-
 - Run the command to install: `pip install nmi_mysql`
-- Make sure you install [`sqlalchemy`](http://www.sqlalchemy.org/)
+- Make sure you install [`sqlalchemy`](http://www.sqlalchemy.org/) and [`pymysql`](http://www.pymysql.org/)
 
 ## Usage
+
 Minimal and straightforward when doing queries
-- Imports the nmi-mysql client library
+
+- Import the nmi-mysql client library
 
 ```python
 from nmi_mysql import nmi_mysql

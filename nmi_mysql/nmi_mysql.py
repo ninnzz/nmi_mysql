@@ -11,6 +11,7 @@ import logging
 
 CONFIG_KEYS = ['host', 'user', 'password', 'db', 'port']
 MAX_POOL_SIZE = 10
+MAX_RETRIES = 5
 
 
 class DB(object):
@@ -23,6 +24,8 @@ class DB(object):
         self.logger = logging.getLogger('database')
         self.charset = 'utf8mb4'
         self.con = None
+        self._last_query = None
+        self._last_params = None
 
         self.engine = create_engine(
             self._sql_alchemy_format(conf),
@@ -50,20 +53,26 @@ class DB(object):
         multi_insert = []
         other_queries = []
 
+        # Flatten out _params to a list
         for param in _params:
             if isinstance(param, list):
+                # Append the contents of list param to the list params
                 params.extend(param)
 
             elif isinstance(param, dict):
+                # Append the values of dict param to the list params
                 for key in param:
                     params.append(param[key])
 
             else:
+                # Append param for types other than list or dict
                 params.append(param)
 
+            # For multiple rows to be inserted
             if isinstance(param, tuple):
                 multi_insert.append(self._to_string(param))
 
+            # For other SQL queries
             else:
                 other_queries.append(self._to_string(param))
 
@@ -74,6 +83,7 @@ class DB(object):
             return (query % tuple(other_queries), params)
 
     def _to_string(self, temp):
+        # Add %s for each item in the list
         if isinstance(temp, list):
             tmp = []
             for item in temp:
@@ -81,6 +91,7 @@ class DB(object):
 
             return ', '.join(tmp)
 
+        # Add <column> = %s for each item in the dict
         elif isinstance(temp, dict):
             tmp = []
             for key in temp:
@@ -90,8 +101,28 @@ class DB(object):
 
         return '%s'
 
-    def connect(self):
-        self.con = self.engine.connect()
+    def connect(self, retry=0):
+        max_retry = min(retry, MAX_RETRIES)
+
+        try:
+            self.con = self.engine.connect()
+
+        except Exception as err:
+            if not max_retry:
+                raise err
+
+            retry = 0
+            while True:
+                self.logger.info('Retrying to connect to database')
+                try:
+                    self.con = self.engine.connect()
+                    break
+
+                except Exception as err2:
+                    retry += 1
+                    if retry == max_retry:
+                        self.logger.error('Failed to connect to database')
+                        raise err2
 
     def close(self):
         self.con.close()
@@ -100,9 +131,11 @@ class DB(object):
         if not self.con:
             self.connect()
 
-        result = None
-
         (query, params) = self._generate_query(_query, _params)
+
+        result = None
+        self._last_query = query
+        self._last_params = params
 
         try:
             result = self.con.execute(query, *params)
