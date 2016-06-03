@@ -26,19 +26,19 @@ Minimal and straightforward when doing queries
 from nmi_mysql import nmi_mysql
 ```
 
-- Initialization: Accepts one parameter, which is the config object
+- Initialization: Requires a parameter, config object, and has optional parameter, autoconnect (boolean)
 
 ```python
-db = nmi_mysql.DB(conf)
+db = nmi_mysql.DB(conf)     # can be db = nmi_mysql.DB(conf, True) to auto-connect, default is False or do not connect
 ```
 
-- Connection
+- Connection: Has optional parameter, retry (integer)
 
 ```python
-db.connect() # can be db.connect(N) to retry connecting N times, default is no retry
+db.connect()    # can be db.connect(5) to retry connecting 5 times, default is 0 or do no retry
 ```
 
-- Query execution: Accepts two parameters. The first is the query and the second is the list of parameters to be used. See example below
+- Query execution: Accepts two parameters. The first is the query and the second is the list of parameters to be used
 
 ```python
 data = db.query(query, params)

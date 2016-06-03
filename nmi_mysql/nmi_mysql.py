@@ -15,7 +15,7 @@ MAX_POOL_SIZE = 10
 
 class DB(object):
 
-    def __init__(self, conf):
+    def __init__(self, conf, autoconnect=False):
         for c in CONFIG_KEYS:
             if c not in conf:
                 raise ValueError('Invalid config object')
@@ -30,6 +30,9 @@ class DB(object):
             self._sql_alchemy_format(conf),
             pool_size=conf.get('max_pool_size', MAX_POOL_SIZE)
         )
+
+        if autoconnect:
+            self.connect()
 
     def _sql_alchemy_format(self, conf):
         return ''.join([
