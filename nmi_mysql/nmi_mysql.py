@@ -128,6 +128,9 @@ class DB(object):
         if not self.con:
             self.connect()
 
+        if not _params:
+            _params = []
+
         (query, params) = self._generate_query(_query, _params)
 
         result = None
