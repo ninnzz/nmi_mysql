@@ -11,7 +11,6 @@ import logging
 
 CONFIG_KEYS = ['host', 'user', 'password', 'db', 'port']
 MAX_POOL_SIZE = 10
-MAX_RETRIES = 5
 
 
 class DB(object):
@@ -102,16 +101,14 @@ class DB(object):
         return '%s'
 
     def connect(self, retry=0):
-        max_retry = min(retry, MAX_RETRIES)
-
         try:
             self.con = self.engine.connect()
 
         except Exception as err:
-            if not max_retry:
+            if not retry:
                 raise err
 
-            retry = 0
+            tries = 0
             while True:
                 self.logger.info('Retrying to connect to database')
                 try:
@@ -119,8 +116,8 @@ class DB(object):
                     break
 
                 except Exception as err2:
-                    retry += 1
-                    if retry == max_retry:
+                    tries += 1
+                    if tries == retry:
                         self.logger.error('Failed to connect to database')
                         raise err2
 

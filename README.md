@@ -9,8 +9,12 @@ A very simple and intuitive mysql client wrapper for sqlalchemy.
 
 ## Installation
 
+- Install [`sqlalchemy`](http://www.sqlalchemy.org/)
+- Install [`pymysql`](http://www.pymysql.org/) as it is the MySQL driver used by `nmi_mysql`
+  - PyMySQL References:
+    - https://gist.github.com/methane/90ec97dda7fa9c7c4ef1
+    - https://wiki.openstack.org/wiki/PyMySQL_evaluation
 - Run the command to install: `pip install nmi_mysql`
-- Make sure you install [`sqlalchemy`](http://www.sqlalchemy.org/) and [`pymysql`](http://www.pymysql.org/)
 
 ## Usage
 
@@ -31,7 +35,7 @@ db = nmi_mysql.DB(conf)
 - Connection
 
 ```python
-db.connect()
+db.connect() # can be db.connect(N) to retry connecting N times, default is no retry
 ```
 
 - Query execution: Accepts two parameters. The first is the query and the second is the list of parameters to be used. See example below
