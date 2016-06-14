@@ -71,8 +71,8 @@ from nmi_mysql import nmi_mysql
 db = nmi_mysql.DB(conf)
 db.connect()
 
-data1 = db.query('SELECT * FROM mytable WHERE name = %s', ['ninz'])
-data2 = db.query('SELECT * FROM mytable WHERE name IN (%s) AND age = %s', [['john', 'doe'], 10])
+data1 = db.query('SELECT * FROM users WHERE name = %s', ['ninz'])
+data2 = db.query('SELECT * FROM users WHERE name IN (%s) AND age = %s', [['john', 'doe'], 10])
 
 print(data)
 print(data2)
@@ -109,4 +109,17 @@ result1 = db.query('UPDATE users SET %s WHERE name = %s', [{'name': 'ninz'}, 'ja
 result2 = db.query('UPDATE users SET name = %s WHERE id IN (%s)', ['sherwin', [1, 2]])
 
 db.close()
+```
+
+##### Multiple statements in a single query
+
+```python
+from nmi_mysql import nmi_mysql
+
+db = nmi_mysql.DB(conf)
+db.connect()
+
+results = db.query('SELECT * FROM users WHERE status = %s; SELECT * FROM users WHERE status = %s', ['active', 'inactive'])
+
+print(results)
 ```

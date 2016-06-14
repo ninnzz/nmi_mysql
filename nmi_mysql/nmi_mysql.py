@@ -4,6 +4,7 @@
 """
 
 from sqlalchemy import create_engine
+from pymysql.cursors import DictCursor
 
 import re
 import logging
@@ -25,6 +26,7 @@ class DB(object):
         self.con = None
         self._last_query = None
         self._last_params = None
+        self.multi_insert = False
 
         self.engine = create_engine(
             self._sql_alchemy_format(conf),
@@ -52,8 +54,8 @@ class DB(object):
             return (query % self._to_string(_params), _params)
 
         params = []
-        multi_insert = []
         other_queries = []
+        self.multi_insert = False
 
         # Flatten out _params to a list
         for param in _params:
@@ -72,14 +74,15 @@ class DB(object):
 
             # For multiple rows to be inserted
             if isinstance(param, tuple):
-                multi_insert.append(self._to_string(param))
+                self.multi_insert = True
 
             # For other SQL queries
             else:
                 other_queries.append(self._to_string(param))
 
-        if multi_insert:
-            return (query % ', '.join(multi_insert), params)
+        if self.multi_insert:
+            # Add %s based on the number of columns to fill in insertion
+            return (query % ('%s,' * len(params[0]))[:-1], params)
 
         else:
             return (query % tuple(other_queries), params)
@@ -102,6 +105,16 @@ class DB(object):
             return ', '.join(tmp)
 
         return '%s'
+
+    def _get_results(self, cursor):
+        if cursor._rows is None:
+            return {
+                'affected_rows': cursor.rowcount
+            }
+
+        result = cursor.fetchall()
+
+        return result if result else []
 
     def connect(self, retry=0):
         try:
@@ -136,23 +149,26 @@ class DB(object):
 
         (query, params) = self._generate_query(_query, _params)
 
-        result = None
+        results = []
         self._last_query = query
         self._last_params = params
 
         try:
-            result = self.con.execute(query, *params)
+            cursor = self.con.connection.cursor(DictCursor)
 
-            if query.lower().strip().find('select') == 0:
-                return [dict(row) or row for row in result]
+            if self.multi_insert:
+                cursor.executemany(query, params)
 
             else:
-                return {
-                    'affected_rows': result.rowcount
-                }
+                cursor.execute(query, params)
+
+            results.append(self._get_results(cursor))
+
+            while cursor.nextset():
+                results.append(self._get_results(cursor))
 
         except Exception as err:
             self.logger.warn(err)
             raise err
 
-        return result
+        return results if len(results) > 1 else results[0]

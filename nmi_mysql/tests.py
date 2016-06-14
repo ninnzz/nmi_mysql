@@ -17,6 +17,7 @@ def create_table(db):
             CREATE TABLE IF NOT EXISTS users (
                 id varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
                 name varchar(256) COLLATE utf8mb4_unicode_ci NOT NULL,
+                status enum('active', 'inactive') COLLATE utf8mb4_unicode_ci DEFAULT 'active',
                 date_created datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 date_updated datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (id)
@@ -76,7 +77,8 @@ def main():
         db,
         [
             (str(uuid.uuid4()), 'jasper'),
-            (str(uuid.uuid4()), 'jv')
+            (str(uuid.uuid4()), 'jv'),
+            (str(uuid.uuid4()), 'ninz')
         ]
     )
     print(result)
@@ -92,13 +94,27 @@ def main():
     result = update_users(
         db,
         [
-            {'name': 'ninz'},
+            {'status': 'inactive'},
             ['jasper', 'jv']
         ]
     )
     print(result)
 
     result = select_users(db)
+    print(result)
+
+    result = db.query(
+        '''
+            SELECT  *
+            FROM    users
+            WHERE   status = %s;
+
+            SELECT  *
+            FROM    users
+            WHERE   status = %s;
+        ''',
+        ['active', 'inactive']
+    )
     print(result)
 
     db.close()
