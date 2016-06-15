@@ -26,7 +26,6 @@ class DB(object):
         self.con = None
         self._last_query = None
         self._last_params = None
-        self.multi_insert = False
 
         self.engine = create_engine(
             self._sql_alchemy_format(conf),
@@ -36,18 +35,18 @@ class DB(object):
         if autoconnect:
             self.connect()
 
-    def _sql_alchemy_format(self, conf):
+    def _sql_alchemy_format(self, _conf):
         return ''.join([
             'mysql+pymysql://',
-            conf['user'] + ':',
-            conf['password'] + '@',
-            conf['host'] + ':',
-            str(conf['port']) + '/',
-            conf['db'],
+            _conf['user'] + ':',
+            _conf['password'] + '@',
+            _conf['host'] + ':',
+            str(_conf['port']) + '/',
+            _conf['db'],
             '?charset=' + self.charset
         ])
 
-    def _generate_query(self, _query, _params):
+    def _generate_query(self, _query, _params, _executemany):
         query = re.sub('\?', '%s', _query)
 
         if not isinstance(_params, list):
@@ -55,7 +54,6 @@ class DB(object):
 
         params = []
         other_queries = []
-        self.multi_insert = False
 
         # Flatten out _params to a list
         for param in _params:
@@ -72,47 +70,41 @@ class DB(object):
                 # Append param for types other than list or dict
                 params.append(param)
 
-            # For multiple rows to be inserted
-            if isinstance(param, tuple):
-                self.multi_insert = True
+            other_queries.append(self._to_string(param))
 
-            # For other SQL queries
-            else:
-                other_queries.append(self._to_string(param))
-
-        if self.multi_insert:
+        if _executemany or (len(params) and isinstance(params[0], tuple)):
             # Add %s based on the number of columns to fill in insertion
-            return (query % ('%s,' * len(params[0]))[:-1], params)
+            return (query % ('%s,' * len(params[0]))[:-1], params, True)
 
         else:
-            return (query % tuple(other_queries), params)
+            return (query % tuple(other_queries), params, False)
 
-    def _to_string(self, temp):
+    def _to_string(self, _temp):
         # Add %s for each item in the list
-        if isinstance(temp, list):
+        if isinstance(_temp, list):
             tmp = []
-            for item in temp:
+            for item in _temp:
                 tmp.append(self._to_string(item))
 
             return ', '.join(tmp)
 
         # Add <column> = %s for each item in the dict
-        elif isinstance(temp, dict):
+        elif isinstance(_temp, dict):
             tmp = []
-            for key in temp:
-                tmp.append(key + ' = ' + self._to_string(temp[key]))
+            for key in _temp:
+                tmp.append(key + ' = ' + self._to_string(_temp[key]))
 
             return ', '.join(tmp)
 
         return '%s'
 
-    def _get_results(self, cursor):
-        if cursor._rows is None:
+    def _get_results(self, _cursor):
+        if _cursor._rows is None:
             return {
-                'affected_rows': cursor.rowcount
+                'affected_rows': _cursor.rowcount
             }
 
-        result = cursor.fetchall()
+        result = _cursor.fetchall()
 
         return result if result else []
 
@@ -140,27 +132,28 @@ class DB(object):
     def close(self):
         self.con.close()
 
-    def query(self, _query, _params=None):
+    def query(self, query, params=None, executemany=False):
         if not self.con:
             self.connect()
 
-        if not _params:
-            _params = []
+        if not params:
+            params = []
 
-        (query, params) = self._generate_query(_query, _params)
+        (_query, _params, _executemany) = self._generate_query(query, params,
+                                                               executemany)
 
         results = []
-        self._last_query = query
-        self._last_params = params
+        self._last_query = _query
+        self._last_params = _params
 
         try:
             cursor = self.con.connection.cursor(DictCursor)
 
-            if self.multi_insert:
-                cursor.executemany(query, params)
+            if _executemany:
+                cursor.executemany(_query, _params)
 
             else:
-                cursor.execute(query, params)
+                cursor.execute(_query, _params)
 
             results.append(self._get_results(cursor))
 

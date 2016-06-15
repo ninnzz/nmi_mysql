@@ -34,7 +34,8 @@ def add_users(db, users):
                 name
             ) VALUES (%s)
         ''',
-        users
+        users,
+        True
     )
 
 

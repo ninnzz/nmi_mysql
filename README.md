@@ -26,41 +26,45 @@ Minimal and straightforward when doing queries
 from nmi_mysql import nmi_mysql
 ```
 
-- Initialization: Requires a parameter, config object, and has optional parameter, autoconnect (boolean)
+- Initialization: Requires a parameter, `conf`, and has an optional parameter, `autoconnect`
+  - `conf` is a dictionary containing the configurations needed to connect to the database
+    - sample `conf`:
+    ```python
+    conf = {
+        'host': 'localhost',
+        'user': 'root',
+        'password':'',
+        'db': 'mydb',
+        'port': 3306,
+        'max_pool_size': 20     # optional, default is 10
+    }
+    ```
+  - `autoconnect` is a boolean which will determine if it will connect to the database after initialization (default: False)
 
 ```python
-db = nmi_mysql.DB(conf)     # can be db = nmi_mysql.DB(conf, True) to auto-connect, default is False or do not connect
+db = nmi_mysql.DB(conf, autoconnect=False)
 ```
 
-- Connection: Has optional parameter, retry (integer)
+- Connection: Has an optional parameter, `retry`
+  - `retry` is an integer which will determine how many times to retry connecting to the database (default: 0 or do not retry)
 
 ```python
-db.connect()    # can be db.connect(5) to retry connecting 5 times, default is 0 or do no retry
+db.connect(retry=0)
 ```
 
-- Query execution: Accepts two parameters. The first is the query and the second is the list of parameters to be used
+- Query execution: Requires a parameter, `query`, and has two optional parameters, `params` and `executemany`
+  - `query` is a string which is the MySQL query to be executed
+  - `params` is a list containing the parameters needed to bind to the query (default: None or no parameters)
+  - `executemany` is a boolean which will determine if the operation is a bulk insert (default: False)
 
 ```python
-data = db.query(query, params)
+data = db.query(query, params, executemany=False)
 ```
 
 - Closing connection
 
 ```python
 db.close()
-```
-
-**Sample config object**
-
-```python
-conf = {
-    'host': 'localhost',
-    'user': 'root',
-    'password':'',
-    'db': 'mydb',
-    'port': 3306,
-    'max_pool_size': 20     # optional, default is 10
-}
 ```
 
 ##### SELECT operations
@@ -90,7 +94,8 @@ db.connect()
 
 # Throws an error upon failure
 try:
-    result = db.query('INSERT INTO users(id, name) VALUES (%s)', [(1, 'jasper'), (2, 'jv')])
+    result1 = db.query('INSERT INTO users(id, name) VALUES (%s)', [(1, 'ninz')])
+    result2 = db.query('INSERT INTO users(id, name) VALUES (%s)', [(2, 'jasper'), (3, 'jv')], True)
 except Exception as err:
     print(err)
 
