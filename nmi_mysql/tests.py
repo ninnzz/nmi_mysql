@@ -34,8 +34,7 @@ def add_users(db, users):
                 name
             ) VALUES (%s)
         ''',
-        users,
-        True
+        users
     )
 
 
@@ -104,7 +103,7 @@ def main():
     result = select_users(db)
     print(result)
 
-    result = db.query(
+    (result1, result2, result3) = db.multi_query(
         '''
             SELECT  *
             FROM    users
@@ -113,10 +112,21 @@ def main():
             SELECT  *
             FROM    users
             WHERE   status = %s;
+
+            UPDATE  users
+            SET     status = %s
+            WHERE   name IN (%s);
         ''',
-        ['active', 'inactive']
+        [
+            'active',
+            'inactive',
+            'active',
+            ['ninz', 'jv', 'jasper']
+        ]
     )
-    print(result)
+    print(result1)
+    print(result2)
+    print(result3)
 
     db.close()
 

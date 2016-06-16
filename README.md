@@ -22,50 +22,59 @@ Minimal and straightforward when doing queries
 
 - Import the nmi-mysql client library
 
-```python
-from nmi_mysql import nmi_mysql
-```
+  ```python
+  from nmi_mysql import nmi_mysql
+  ```
 
 - Initialization: Requires a parameter, `conf`, and has an optional parameter, `autoconnect`
   - `conf` is a dictionary containing the configurations needed to connect to the database
     - sample `conf`:
-    ```python
-    conf = {
-        'host': 'localhost',
-        'user': 'root',
-        'password':'',
-        'db': 'mydb',
-        'port': 3306,
-        'max_pool_size': 20     # optional, default is 10
-    }
-    ```
+
+      ```python
+      conf = {
+          'host': 'localhost',
+          'user': 'root',
+          'password':'',
+          'db': 'mydb',
+          'port': 3306,
+          'max_pool_size': 20     # optional, default is 10
+      }
+      ```
+
   - `autoconnect` is a boolean which will determine if it will connect to the database after initialization (default: False)
 
-```python
-db = nmi_mysql.DB(conf, autoconnect=False)
-```
+  ```python
+  db = nmi_mysql.DB(conf, autoconnect=False)
+  ```
 
 - Connection: Has an optional parameter, `retry`
   - `retry` is an integer which will determine how many times to retry connecting to the database (default: 0 or do not retry)
 
-```python
-db.connect(retry=0)
-```
+  ```python
+  db.connect(retry=0)
+  ```
 
-- Query execution: Requires a parameter, `query`, and has two optional parameters, `params` and `executemany`
+- Query execution: Requires a parameter, `query`, and has an optional parameter, `params`
   - `query` is a string which is the MySQL query to be executed
   - `params` is a list containing the parameters needed to bind to the query (default: None or no parameters)
-  - `executemany` is a boolean which will determine if the operation is a bulk insert (default: False)
 
-```python
-data = db.query(query, params, executemany=False)
-```
+    - Single Query
+
+      ```python
+      data = db.query(query, params)
+      ```
+
+    - Multiple Query (delimited by semi-colon)
+
+      ```python
+      data = db.multi_query(query, params)
+      ```
 
 - Closing connection
 
-```python
-db.close()
-```
+  ```python
+  db.close()
+  ```
 
 ##### SELECT operations
 
@@ -124,7 +133,7 @@ from nmi_mysql import nmi_mysql
 db = nmi_mysql.DB(conf)
 db.connect()
 
-results = db.query('SELECT * FROM users WHERE status = %s; SELECT * FROM users WHERE status = %s', ['active', 'inactive'])
+results = db.multi_query('SELECT * FROM users WHERE status = %s; SELECT * FROM users WHERE status = %s', ['active', 'inactive'])
 
 print(results)
 ```
