@@ -76,7 +76,7 @@ Minimal and straightforward when doing queries
   db.close()
   ```
 
-##### SELECT operations
+##### SELECT and DELETE operations
 
 ```python
 from nmi_mysql import nmi_mysql
@@ -84,11 +84,13 @@ from nmi_mysql import nmi_mysql
 db = nmi_mysql.DB(conf)
 db.connect()
 
-data1 = db.query('SELECT * FROM users WHERE name = %s', ['ninz'])
-data2 = db.query('SELECT * FROM users WHERE name IN (%s) AND age = %s', [['john', 'doe'], 10])
+result1 = db.query('SELECT * FROM users WHERE name = %s', ['ninz'])
+result2 = db.query('SELECT * FROM users WHERE name IN (%s) AND age = %s', [['john', 'doe'], 10])
+result3 = db.query('DELETE FROM users WHERE name IN (%s) OR id = %s', [['ninz', 'john'], 1])
 
-print(data)
-print(data2)
+print(result1)
+print(result2)
+print(result3)
 
 db.close()
 ```
@@ -104,7 +106,9 @@ db.connect()
 # Throws an error upon failure
 try:
     result1 = db.query('INSERT INTO users(id, name) VALUES (%s)', [(1, 'ninz')])
-    result2 = db.query('INSERT INTO users(id, name) VALUES (%s)', [(2, 'jasper'), (3, 'jv')], True)
+    result2 = db.query('INSERT INTO users(id, name) VALUES (%s)', [(2, 'jasper'), (3, 'jv')])
+    result3 = db.query('INSERT INTO users(id, name) VALUES (%s, %s)', [4, 'sherwin'])
+    result4 = db.query('INSERT INTO users(id, name) VALUES (%s, %s), (%s, %s)', [5, 'asdf', 6, 'qwerty'])
 except Exception as err:
     print(err)
 
@@ -126,6 +130,7 @@ db.close()
 ```
 
 ##### Multiple statements in a single query
+- Note: INSERTs using tuple parameters are not supported by `db.multi_query`.
 
 ```python
 from nmi_mysql import nmi_mysql
@@ -133,7 +138,15 @@ from nmi_mysql import nmi_mysql
 db = nmi_mysql.DB(conf)
 db.connect()
 
-results = db.multi_query('SELECT * FROM users WHERE status = %s; SELECT * FROM users WHERE status = %s', ['active', 'inactive'])
+results = db.multi_query(
+    '''
+        SELECT * FROM users WHERE status = %s;
+        UPDATE users SET status = %s WHERE status = %s;
+        DELETE FROM users WHERE status = %s;
+        INSERT INTO users (id, name) VALUES (%s, %s);
+    ''',
+    ['active', 'active', 'inactive', 'active', 1, 'ninz']
+)
 
 print(results)
 ```
