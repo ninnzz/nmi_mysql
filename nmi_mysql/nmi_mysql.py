@@ -1,194 +1,179 @@
 """
-    Custom mysql wrapper for pymysql
-    Usefull for raw queries and scripting
+    Custom mysql wrapper for sqlalchemy
+    Useful for raw queries and scripting
 """
+
+from sqlalchemy import create_engine
+from pymysql.cursors import DictCursor
 
 import re
 import logging
-import pymysql.cursors
-from queue import Queue
+
+
+CONFIG_KEYS = ['host', 'user', 'password', 'db', 'port']
+MAX_POOL_SIZE = 10
 
 
 class DB(object):
 
     def __init__(self, conf, autoconnect=False):
+        for c in CONFIG_KEYS:
+            if c not in conf:
+                raise ValueError('Invalid config object')
+
         self.logger = logging.getLogger('database')
-        self.host = conf['host']
-        self.user = conf['user']
-        self.password = conf['password']
-        self.db_conn = conf['db']
-        self.port = int(conf['port'])
-        self.handle = None
-        self.connected = False
+        self.charset = 'utf8mb4'
+        self.con = None
+        self._last_query = None
+        self._last_params = None
+
+        self.engine = create_engine(
+            self._sql_alchemy_format(conf),
+            pool_size=conf.get('max_pool_size', MAX_POOL_SIZE)
+        )
 
         if autoconnect:
             self.connect()
 
-    def __del__(self):
-        self.close()
+    def _sql_alchemy_format(self, _conf):
+        return ''.join([
+            'mysql+pymysql://',
+            _conf['user'] + ':',
+            _conf['password'] + '@',
+            _conf['host'] + ':',
+            str(_conf['port']) + '/',
+            _conf['db'],
+            '?charset=' + self.charset
+        ])
 
-    def connect(self):
-
-        self.logger.info('Trying to connect to mysql database')
-        try:
-            con = pymysql.connect(host=self.host, user=self.user, password=self.password,
-                                  db=self.db_conn, port=self.port, charset='utf8mb4',
-                                  cursorclass=pymysql.cursors.DictCursor)
-
-        except Exception as err:
-            self.logger.error('Failed to connect to db')
-            self.logger.warn('Error:')
-            self.logger.info(err)
-            raise err
-
-        self.logger.info('Connection to mysql')
-        self.connected = True
-        self.handle = con
-        return True
-
-    def close(self):
-        try:
-            if self.connected:
-                self.handle.close()
-                self.connected = False
-                self.handle = None
-
-        except Exception as err:
-            self.logger.warn('Failed to close connection')
-            self.logger.warn(err)
-            raise err
-
-        return None
-
-    def query(self, _query, _params=None):
-        """
-            self.handle holds the connection
-            _query is the query
-            _params holds the variables need by the query
-        """
-
-        result = None
-        query = _query
-
-        if _params:
-            query = self.generate_query(_query, _params)
-
-        try:
-            with self.handle.cursor() as cursor:
-                cursor.execute(query, ())
-
-                if query.lower().strip().find('select') == 0:
-                    result = list(cursor.fetchall())
-
-                else:
-                    result = {
-                        'affected_rows': cursor.rowcount
-                    }
-
-        except Exception as err:
-            self.logger.warn(err)
-            raise err
-
-        self.handle.commit()
-
-        return result
-
-    def generate_query(self, _query, _params):
+    def _generate_query(self, _query, _params):
         query = re.sub('\?', '%s', _query)
 
         if not isinstance(_params, list):
-            return query % self.to_string(_params)
+            return (query % self._to_string(_params), _params)
 
         params = []
-        values = []
+        query_params = []
+
+        # Flatten out _params to a list
         for param in _params:
-            if isinstance(param, tuple):
-                values.append('(' + self.to_string(param) + ')')
+            if isinstance(param, list):
+                # Append the contents of list param to the list params
+                params.extend(param)
+
+            elif isinstance(param, dict):
+                # Append the values of dict param to the list params
+                for key in param:
+                    params.append(param[key])
 
             else:
-                params.append(self.to_string(param))
+                # Append param for types other than list or dict
+                params.append(param)
 
-        if values:
-            params = ', '.join(values)
-            query = query % params[1:-1]
+            query_params.append(self._to_string(param))
 
-        else:
-            query = query % tuple(params)
+        if len(params) and isinstance(params[0], tuple):
+            # Add %s based on the number of columns to fill in insertion
+            return (query % ('%s,' * len(params[0]))[:-1], params)
 
-        return query
+        return (query % tuple(query_params), params)
 
-    def to_string(self, temp):
-        if isinstance(temp, (list, tuple)):
+    def _to_string(self, _temp):
+        # Add %s for each item in the list
+        if isinstance(_temp, list):
             tmp = []
-            for item in temp:
-                if isinstance(item, str):
-                    item = item.replace('%', '%%')
-                tmp.append(self.handle.escape(item))
+            for item in _temp:
+                tmp.append(self._to_string(item))
 
             return ', '.join(tmp)
 
-        elif isinstance(temp, dict):
+        # Add <column> = %s for each item in the dict
+        elif isinstance(_temp, dict):
             tmp = []
-            for key in temp:
-                if isinstance(temp[key], str):
-                    temp[key] = temp[key].replace('%', '%%')
-                tmp.append(key + ' = ' + self.handle.escape(temp[key]))
+            for key in _temp:
+                tmp.append(key + ' = ' + self._to_string(_temp[key]))
 
             return ', '.join(tmp)
 
-        elif isinstance(temp, str):
-            return self.handle.escape(temp.replace('%', '%%'))
+        return '%s'
 
-        else:
-            return self.handle.escape(temp)
+    def _execute(self, _query, _params, _multi=False):
+        if not self.con:
+            self.connect()
 
+        if not _params:
+            _params = []
 
-class ConnectionPool(object):
-    """
-    Usage:
-        conn_pool = nmi_mysql.ConnectionPool(config)
+        (query, params) = self._generate_query(_query, _params)
 
-        db = conn_pool.get_connection()
-        db.query('SELECT 1', [])
-        conn_pool.return_connection(db)
+        self._last_query = query
+        self._last_params = params
 
-        conn_pool.close()
-    """
+        try:
+            if _multi:
+                result = []
+                cursor = self.con.connection.cursor(DictCursor)
 
-    def __init__(self, conf, max_pool_size=20):
-        self.conf = conf
-        self.max_pool_size = max_pool_size
-        self.initialize_pool()
+                cursor.execute(query, params)
 
-    def initialize_pool(self):
-        self.pool = Queue(maxsize=self.max_pool_size)
-        for _ in range(0, self.max_pool_size):
-            self.pool.put_nowait(DB(self.conf, True))
+                result.append(self._get_multi_results(cursor))
 
-    def get_connection(self):
-        # returns a db instance when one is available else waits until one is
-        db = self.pool.get(True)
+                while cursor.nextset():
+                    result.append(self._get_multi_results(cursor))
 
-        # checks if db is still connected because db instance automatically
-        # closes when not in used
-        if not self.ping(db):
-            db.connect()
+            else:
+                result = self.con.execute(query, *params)
 
-        return db
+                if result.returns_rows:
+                    result = [dict(row) for row in result]
 
-    def return_connection(self, db):
-        return self.pool.put_nowait(db)
+                else:
+                    result = {
+                        'affected_rows': result.rowcount
+                    }
+
+        except Exception as err:
+            self.logger.warn(err.orig)
+            raise err.orig
+
+        return result
+
+    def _get_multi_results(self, _cursor):
+        if _cursor._rows is None:
+            return {
+                'affected_rows': _cursor.rowcount
+            }
+
+        result = _cursor.fetchall()
+
+        return result if result else []
+
+    def connect(self, retry=0):
+        try:
+            self.con = self.engine.connect()
+
+        except Exception as err:
+            if not retry:
+                raise err
+
+            tries = 0
+            while True:
+                self.logger.info('Retrying to connect to database')
+                try:
+                    self.con = self.engine.connect()
+                    break
+
+                except Exception as err2:
+                    tries += 1
+                    if tries == retry:
+                        self.logger.error('Failed to connect to database')
+                        raise err2
 
     def close(self):
-        while not self.is_empty():
-            self.pool.get().close()
+        self.con.close()
 
-    def ping(self, db):
-        data = db.query('SELECT 1', [])
-        return data
+    def multi_query(self, query, params=None):
+        return self._execute(query, params, True)
 
-    def get_initialized_connection_pool(self):
-        return self.pool
-
-    def is_empty(self):
-        return self.pool.empty()
+    def query(self, query, params=None):
+        return self._execute(query, params, False)

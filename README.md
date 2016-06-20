@@ -5,77 +5,148 @@ nmi-mysql
 [![Code Health](https://landscape.io/github/pprmint/nmi_mysql/master/landscape.svg?style=flat)](https://landscape.io/github/pprmint/nmi_mysql/master)
 
 
-A very simple and intuitive mysql client wrapper for pymysql.
+A very simple and intuitive mysql client wrapper for sqlalchemy.
 
 ## Installation
 
-
+- Install [`sqlalchemy`](http://www.sqlalchemy.org/)
+- Install [`pymysql`](http://www.pymysql.org/) as it is the MySQL driver used by `nmi_mysql`
+  - PyMySQL References:
+    - https://gist.github.com/methane/90ec97dda7fa9c7c4ef1
+    - https://wiki.openstack.org/wiki/PyMySQL_evaluation
 - Run the command to install: `pip install nmi_mysql`
-- Make sure you install `pymysql`. You can check out the instructions [here](http://www.pymysql.org/)
 
 ## Usage
+
 Minimal and straightforward when doing queries
-- Imports the nmi-mysql client library
 
-```python
-from nmi_mysql import nmi_mysql
-```
-- Initialization: Accepts two parameters, first being the config object and the second specifying if autoconnect to db is enabled. If set to false, call `con.connect()` 
+- Import the nmi-mysql client library
 
-```python
-try:
-    con = nmi_mysql.DB(conf, True)
-except Exception as err:
-    print(err)
-```
-- Query execution: Accepts two parameters. The first is the query and the second is the list of parameters to be used. See example below
+  ```python
+  from nmi_mysql import nmi_mysql
+  ```
 
-```python
-data = con.query(query, params)
-```
+- Initialization: Requires a parameter, `conf`, and has an optional parameter, `autoconnect`
+  - `conf` is a dictionary containing the configurations needed to connect to the database
+    - sample `conf`:
+
+      ```python
+      conf = {
+          'host': 'localhost',
+          'user': 'root',
+          'password':'',
+          'db': 'mydb',
+          'port': 3306,
+          'max_pool_size': 20     # optional, default is 10
+      }
+      ```
+
+  - `autoconnect` is a boolean which will determine if it will connect to the database after initialization (default: False)
+
+  ```python
+  db = nmi_mysql.DB(conf, autoconnect=False)
+  ```
+
+- Connection: Has an optional parameter, `retry`
+  - `retry` is an integer which will determine how many times to retry connecting to the database (default: 0 or do not retry)
+
+  ```python
+  db.connect(retry=0)
+  ```
+
+- Query execution: Requires a parameter, `query`, and has an optional parameter, `params`
+  - `query` is a string which is the MySQL query to be executed
+  - `params` is a list containing the parameters needed to bind to the query (default: None or no parameters)
+
+    - Single Query
+
+      ```python
+      data = db.query(query, params)
+      ```
+
+    - Multiple Query (delimited by semi-colon)
+
+      ```python
+      data = db.multi_query(query, params)
+      ```
+
 - Closing connection
 
-```python
-con.close()
-```
+  ```python
+  db.close()
+  ```
 
-**Sample config object**
-```python
-conf = {
-    'host': 'localhost',
-    'user': 'root',
-    'password':'',
-    'db': 'mydb',
-    'port': 3306    
-}
-```
+##### SELECT and DELETE operations
 
-##### SELECT operations
 ```python
 from nmi_mysql import nmi_mysql
 
-connection = nmi_mysql.DB(conf, True)
+db = nmi_mysql.DB(conf)
+db.connect()
 
-data1 = connection.query('SELECT * FROM mytable WHERE name = %s', ['ninz'])
-data2 = connection.query('SELECT * FROM mytable WHERE name IN (%s) AND age = %s', [['john', 'doe'], 10])
+result1 = db.query('SELECT * FROM users WHERE name = %s', ['ninz'])
+result2 = db.query('SELECT * FROM users WHERE name IN (%s) AND age = %s', [['john', 'doe'], 10])
+result3 = db.query('DELETE FROM users WHERE name IN (%s) OR id = %s', [['ninz', 'john'], 1])
 
-connection.close()
+print(result1)
+print(result2)
+print(result3)
 
-print(data)
-print(data2)
-
+db.close()
 ```
 
 ##### INSERT operations
+
 ```python
 from nmi_mysql import nmi_mysql
 
-connection = nmi_mysql.DB(conf, True)
+db = nmi_mysql.DB(conf)
+db.connect()
 
 # Throws an error upon failure
 try:
-    result = connection.query('INSERT INTO users VALUES(%s)', [user_object])
+    result1 = db.query('INSERT INTO users(id, name) VALUES (%s)', [(1, 'ninz')])
+    result2 = db.query('INSERT INTO users(id, name) VALUES (%s)', [(2, 'jasper'), (3, 'jv')])
+    result3 = db.query('INSERT INTO users(id, name) VALUES (%s, %s)', [4, 'sherwin'])
+    result4 = db.query('INSERT INTO users(id, name) VALUES (%s, %s), (%s, %s)', [5, 'asdf', 6, 'qwerty'])
 except Exception as err:
     print(err)
-connection.close()
+
+db.close()
+```
+
+##### UPDATE operations
+
+```python
+from nmi_mysql import nmi_mysql
+
+db = nmi_mysql.DB(conf)
+db.connect()
+
+result1 = db.query('UPDATE users SET %s WHERE name = %s', [{'name': 'ninz'}, 'jasper'])
+result2 = db.query('UPDATE users SET name = %s WHERE id IN (%s)', ['sherwin', [1, 2]])
+
+db.close()
+```
+
+##### Multiple statements in a single query
+- Note: INSERTs using tuple parameters are not supported by `db.multi_query`.
+
+```python
+from nmi_mysql import nmi_mysql
+
+db = nmi_mysql.DB(conf)
+db.connect()
+
+results = db.multi_query(
+    '''
+        SELECT * FROM users WHERE status = %s;
+        UPDATE users SET status = %s WHERE status = %s;
+        DELETE FROM users WHERE status = %s;
+        INSERT INTO users (id, name) VALUES (%s, %s);
+    ''',
+    ['active', 'active', 'inactive', 'active', 1, 'ninz']
+)
+
+print(results)
 ```
