@@ -14,6 +14,10 @@ Ideal for performing simple and raw operations in mysql.
     * pymysql (http://www.pymysql.org/)
 
 **Change Log**
+    * v.0.71
+        * Added connection polling
+        * Used sql alchemy core
+        * Updated examples for database operations
     * v.0.63
 	* removed unecessary error message upon close
 	* raise error instead of returning None
