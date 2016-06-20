@@ -133,8 +133,8 @@ class DB(object):
                     }
 
         except Exception as err:
-            self.logger.warn(err)
-            raise err
+            self.logger.warn(err.orig)
+            raise err.orig
 
         return result
 
