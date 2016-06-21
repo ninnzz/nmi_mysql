@@ -14,6 +14,8 @@ Ideal for performing simple and raw operations in mysql.
     * pymysql (http://www.pymysql.org/)
 
 **Change Log**
+    * v.0.72
+        * Fixed showing of SQLAlchemy Error instead of generic error message
     * v.0.71
         * Added connection polling
         * Used sql alchemy core
