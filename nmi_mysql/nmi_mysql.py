@@ -3,8 +3,10 @@
     Useful for raw queries and scripting
 """
 
-from sqlalchemy import create_engine
 from pymysql.cursors import DictCursor
+
+from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
 
 import re
 import logging
@@ -132,9 +134,13 @@ class DB(object):
                         'affected_rows': result.rowcount
                     }
 
-        except Exception as err:
+        except SQLAlchemyError as err:
             self.logger.warn(err.orig)
             raise err.orig
+
+        except Exception as err:
+            self.logger.warn(err)
+            raise err
 
         return result
 
