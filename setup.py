@@ -13,4 +13,6 @@ setup(
     url='https://github.com/pprmint/nmi_mysql',
     keywords=['mysql', 'client', 'wrapper', 'library', 'sqlalchemy', 'pymysql'],
     classifiers=[],
+    license='MIT',
+    Platform='Unix'
 )
