@@ -26,7 +26,7 @@ Minimal and straightforward when doing queries
   from nmi_mysql import nmi_mysql
   ```
 
-- Initialization: Requires a parameter, `conf`, and has an optional parameter, `autoconnect`
+- Initialization: Requires a parameter, `conf`
   - `conf` is a dictionary containing the configurations needed to connect to the database
     - sample `conf`:
 
@@ -41,22 +41,14 @@ Minimal and straightforward when doing queries
       }
       ```
 
-  - `autoconnect` is a boolean which will determine if it will connect to the database after initialization (default: False)
-
   ```python
-  db = nmi_mysql.DB(conf, autoconnect=False)
+  db = nmi_mysql.DB(conf)
   ```
 
-- Connection: Has an optional parameter, `retry`
-  - `retry` is an integer which will determine how many times to retry connecting to the database (default: 0 or do not retry)
-
-  ```python
-  db.connect(retry=0)
-  ```
-
-- Query execution: Requires a parameter, `query`, and has an optional parameter, `params`
+- Query execution: Requires a parameter, `query`, and has two optional parameters, `params` and `retry_connection`
   - `query` is a string which is the MySQL query to be executed
   - `params` is a list containing the parameters needed to bind to the query (default: None or no parameters)
+  - `retry_connection` is an integer which will determine how many times to retry connecting to the database (default: 0 or do not retry)
 
     - Single Query
 
@@ -70,19 +62,12 @@ Minimal and straightforward when doing queries
       data = db.multi_query(query, params)
       ```
 
-- Closing connection
-
-  ```python
-  db.close()
-  ```
-
 ##### SELECT and DELETE operations
 
 ```python
 from nmi_mysql import nmi_mysql
 
 db = nmi_mysql.DB(conf)
-db.connect()
 
 result1 = db.query('SELECT * FROM users WHERE name = %s', ['ninz'])
 result2 = db.query('SELECT * FROM users WHERE name IN (%s) AND age = %s', [['john', 'doe'], 10])
@@ -91,8 +76,6 @@ result3 = db.query('DELETE FROM users WHERE name IN (%s) OR id = %s', [['ninz', 
 print(result1)
 print(result2)
 print(result3)
-
-db.close()
 ```
 
 ##### INSERT operations
@@ -101,7 +84,6 @@ db.close()
 from nmi_mysql import nmi_mysql
 
 db = nmi_mysql.DB(conf)
-db.connect()
 
 # Throws an error upon failure
 try:
@@ -111,8 +93,6 @@ try:
     result4 = db.query('INSERT INTO users(id, name) VALUES (%s, %s), (%s, %s)', [5, 'asdf', 6, 'qwerty'])
 except Exception as err:
     print(err)
-
-db.close()
 ```
 
 ##### UPDATE operations
@@ -121,12 +101,9 @@ db.close()
 from nmi_mysql import nmi_mysql
 
 db = nmi_mysql.DB(conf)
-db.connect()
 
 result1 = db.query('UPDATE users SET %s WHERE name = %s', [{'name': 'ninz'}, 'jasper'])
 result2 = db.query('UPDATE users SET name = %s WHERE id IN (%s)', ['sherwin', [1, 2]])
-
-db.close()
 ```
 
 ##### Multiple statements in a single query
@@ -136,7 +113,6 @@ db.close()
 from nmi_mysql import nmi_mysql
 
 db = nmi_mysql.DB(conf)
-db.connect()
 
 results = db.multi_query(
     '''
