@@ -68,7 +68,6 @@ def update_users(db, params):
 
 def main():
     db = nmi_mysql.DB(CONFIG)
-    db.connect()
 
     result = create_table(db)
     print(result)
@@ -127,8 +126,6 @@ def main():
     print(result1)
     print(result2)
     print(result3)
-
-    db.close()
 
 
 if __name__ == '__main__':

@@ -18,14 +18,13 @@ MAX_POOL_SIZE = 10
 
 class DB(object):
 
-    def __init__(self, conf, autoconnect=False):
+    def __init__(self, conf):
         for c in CONFIG_KEYS:
             if c not in conf:
                 raise ValueError('Invalid config object')
 
         self.logger = logging.getLogger('database')
         self.charset = 'utf8mb4'
-        self.con = None
         self._last_query = None
         self._last_params = None
 
@@ -33,9 +32,6 @@ class DB(object):
             self._sql_alchemy_format(conf),
             pool_size=conf.get('max_pool_size', MAX_POOL_SIZE)
         )
-
-        if autoconnect:
-            self.connect()
 
     def _sql_alchemy_format(self, _conf):
         return ''.join([
@@ -47,6 +43,26 @@ class DB(object):
             _conf['db'],
             '?charset=' + self.charset
         ])
+
+    def _connect(self, _retry_connection=0):
+        try:
+            return self.engine.connect()
+
+        except Exception as err:
+            if not _retry_connection:
+                raise err
+
+            tries = 0
+            while True:
+                self.logger.info('Retrying to connect to database')
+                try:
+                    return self.engine.connect()
+
+                except Exception as err2:
+                    tries += 1
+                    if tries == _retry_connection:
+                        self.logger.error('Failed to connect to database')
+                        raise err2
 
     def _generate_query(self, _query, _params):
         query = re.sub('\?', '%s', _query)
@@ -99,9 +115,8 @@ class DB(object):
 
         return '%s'
 
-    def _execute(self, _query, _params, _multi=False):
-        if not self.con:
-            self.connect()
+    def _execute(self, _query, _params, _multi=False, _retry_connection=0):
+        con = self._connect(_retry_connection)
 
         if not _params:
             _params = []
@@ -114,7 +129,7 @@ class DB(object):
         try:
             if _multi:
                 result = []
-                cursor = self.con.connection.cursor(DictCursor)
+                cursor = con.connection.cursor(DictCursor)
 
                 cursor.execute(query, params)
 
@@ -124,7 +139,7 @@ class DB(object):
                     result.append(self._get_multi_results(cursor))
 
             else:
-                result = self.con.execute(query, *params)
+                result = con.execute(query, *params)
 
                 if result.returns_rows:
                     result = [dict(row) for row in result]
@@ -133,6 +148,8 @@ class DB(object):
                     result = {
                         'affected_rows': result.rowcount
                     }
+
+            con.close()
 
         except SQLAlchemyError as err:
             self.logger.warn(err.orig)
@@ -154,32 +171,8 @@ class DB(object):
 
         return result if result else []
 
-    def connect(self, retry=0):
-        try:
-            self.con = self.engine.connect()
+    def multi_query(self, query, params=None, retry_connection=0):
+        return self._execute(query, params, True, retry_connection)
 
-        except Exception as err:
-            if not retry:
-                raise err
-
-            tries = 0
-            while True:
-                self.logger.info('Retrying to connect to database')
-                try:
-                    self.con = self.engine.connect()
-                    break
-
-                except Exception as err2:
-                    tries += 1
-                    if tries == retry:
-                        self.logger.error('Failed to connect to database')
-                        raise err2
-
-    def close(self):
-        self.con.close()
-
-    def multi_query(self, query, params=None):
-        return self._execute(query, params, True)
-
-    def query(self, query, params=None):
-        return self._execute(query, params, False)
+    def query(self, query, params=None, retry_connection=0):
+        return self._execute(query, params, False, retry_connection)
