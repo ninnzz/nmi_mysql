@@ -3,6 +3,7 @@ nmi-mysql
 [![Build Status](https://travis-ci.org/pprmint/nmi_mysql.svg?branch=master)](https://travis-ci.org/pprmint/nmi_mysql)
 [![PyPI version](https://badge.fury.io/py/nmi_mysql.svg)](https://badge.fury.io/py/nmi_mysql)
 [![Code Health](https://landscape.io/github/pprmint/nmi_mysql/master/landscape.svg?style=flat)](https://landscape.io/github/pprmint/nmi_mysql/master)
+[![Requirements Status](https://requires.io/github/pprmint/nmi_mysql/requirements.svg?branch=master)](https://requires.io/github/pprmint/nmi_mysql/requirements/?branch=master)
 
 
 A very simple and intuitive mysql client wrapper for sqlalchemy.
