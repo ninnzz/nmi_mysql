@@ -4,3 +4,4 @@ setup.cfg
 setup.py
 nmi_mysql/__init__.py
 nmi_mysql/nmi_mysql.py
+nmi_mysql/tests.py
