@@ -1,4 +1,5 @@
 logutils==0.3.3
-nmi-mysql==0.74
 requests==2.12.5
 requires.io==0.2.5
+pymysql==0.7.4
+sqlalchemy==1.1.5

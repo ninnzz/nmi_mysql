@@ -3,6 +3,7 @@ python:
   - "3.5"
 # command to install dependencies
 install:
+  - python setup.py install
   - pip3 install .
   - pip3 install -r requirements.txt
 # command to run tests
