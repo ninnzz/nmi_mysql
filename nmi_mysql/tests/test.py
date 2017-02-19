@@ -1,5 +1,5 @@
 import uuid
-import nmi_mysql
+from nmi_mysql import nmi_mysql
 
 
 CONFIG = {

@@ -6,7 +6,7 @@
 import re
 import logging
 
-from utils import deprecated
+from nmi_mysql.utils import deprecated
 
 from pymysql.cursors import DictCursor
 
