@@ -81,7 +81,7 @@ class DB(object):
         query = re.sub('%', '%%', query)
 
         if not isinstance(_params, list):
-            return query.format(self._to_string(_params)), _params
+            return query.format(self._to_string(_params)), [_params]
 
         params = []
         query_params = []
