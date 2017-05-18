@@ -14,6 +14,8 @@ Ideal for performing simple and raw operations in mysql.
     * pymysql (http://www.pymysql.org/)
 
 **Change Log**
+    * v.0.76
+        * Fixed import issues
     * v.0.75
         * Added deprecated warnings
     * v.0.74
